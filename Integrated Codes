@@ -1,0 +1,477 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+using cloudscribe.HtmlAgilityPack;
+
+
+namespace Integrated_version_Trial_1
+{
+    /// <summary>
+    /// Interaction logic for MainWindow.xaml
+    /// </summary>
+    public partial class MainWindow : Window
+    {
+        public MainWindow()
+        {
+            InitializeComponent();
+        }
+    
+
+        private string LocationPagesMetOffice()
+        {
+            string locationPage = "";
+            ComboBoxItem locationChoice = (ComboBoxItem)LocationBox.SelectedItem;
+
+            if (locationChoice.Content.ToString() == "Leeds")
+            {
+                locationPage = "https://www.metoffice.gov.uk/weather/forecast/gcwfhf1w0#?date=";
+            }
+            else if (locationChoice.Content.ToString() == "London")
+            {
+                locationPage = "https://www.metoffice.gov.uk/weather/forecast/gcpvj0v07#?date=";
+            }
+            else if (locationChoice.Content.ToString() == "Bath")
+            {
+                locationPage = "https://www.metoffice.gov.uk/weather/forecast/gcnk62de6#?date=";
+            }
+            else if (locationChoice.Content.ToString() == "Newcastle")
+            {
+                locationPage = "https://www.metoffice.gov.uk/weather/forecast/gcybg0rne#?date=";
+            }
+
+            DateTime today = DateTime.Today;
+            string todayDate = today.ToString("yyyy-MM-dd");
+
+            locationPage = locationPage + todayDate;
+            return locationPage;            
+        }
+
+
+        private string LocationPagesWeather()
+        {
+            string locationPage = "";
+            ComboBoxItem locationChoice = (ComboBoxItem)LocationBox.SelectedItem;
+
+            if (locationChoice.Content.ToString() == "Leeds")
+            {
+                locationPage = "https://weather.com/en-GB/weather/today/l/0ea58c060f0f6522c01d626fde93ab4bff38410da8de58c9068e373327d128e91bdb47028a98b93188526f6bdecc918c";
+            }
+            else if (locationChoice.Content.ToString() == "London")
+            {
+                locationPage = "https://weather.com/en-GB/weather/today/l/ae8230efd4bc57fdf721a02c7eb2b88c56aa6e71d73666328e33af3ea2039032132e24ae91b6a07862c5091a9d95a4b8";
+            }
+            else if (locationChoice.Content.ToString() == "Bath")
+            {
+                locationPage = "https://weather.com/en-GB/weather/today/l/1154406eafa3e6648b499a618b79c5b516b9f0d51fbdbfae92643b232d47031fc297f56df833d088ff0ed1a080175f31";
+            }
+            else if (locationChoice.Content.ToString() == "Newcastle")
+            {
+                locationPage = "https://weather.com/en-GB/weather/today/l/5ea044caecf58ca70dc22181f596516c996f7bb0ae78570785ff15404810b6253565f7aabd7d170370278eb69f2563b6";
+            }
+
+            return locationPage;
+        }
+
+
+        private void AirQualityBox_Click(object sender, RoutedEventArgs e)
+        {
+            OutputBox.Clear();
+            AdviceBox.Clear();
+
+            string PollutionValue = GetPollutionValue();
+
+            OutputPollutionData(PollutionValue);
+            
+        }
+
+        private string GetPollutionValue()
+        {
+
+            try
+            {
+                string LocationPage = LocationPagesWeather();
+
+                HtmlWeb web = new HtmlWeb();
+
+
+                HtmlDocument doc = web.Load(LocationPage);
+
+
+                var AirNodes = doc.DocumentNode.SelectSingleNode("//div[@class ='AirQuality--col--3I-4C']");
+
+                string poll_val = AirNodes.InnerText;
+
+                return poll_val;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                throw;
+            }
+        }
+
+        public void OutputPollutionData(string AirIndex)
+        {
+            string PolluteLevel = AirIndex.ToString();
+
+            DateTime today = DateTime.Today;
+            string todayDate = today.ToString("dd-MM-yyyy");
+
+            OutputBox.Text = "Date: " + todayDate + "\n";
+            OutputBox.Text += "Location: " + ((ComboBoxItem)LocationBox.SelectedItem).Content.ToString() + "\n";
+            OutputBox.Text += "Pollution Level: " + PolluteLevel + "/10";
+
+            int PolluteLevelInt = int.Parse(PolluteLevel);
+            PollutionAdvice(PolluteLevelInt);
+            
+        }
+
+        public void PollutionAdvice( int level)
+        {
+            if(level >= 0 && level <= 3)
+            {
+                MessageBox.Show("low");
+            }
+
+            else if(level >= 4 && level <= 6)
+            {
+                MessageBox.Show("moderate");
+            }
+
+            else
+            {
+                MessageBox.Show("high");
+            }
+        }
+
+
+
+
+
+        private void TemperatureBox_Click(object sender, RoutedEventArgs e)
+        {
+            OutputBox.Clear();
+            AdviceBox.Clear();
+
+            List<string> highTemp = GetHighTemps();
+            List<string> lowTemp = GetLowTemps();
+
+            OutputTempData(highTemp, lowTemp);          
+        }
+
+        private List<string> GetHighTemps()
+        {
+            List<string> highTemps = new List<string>();
+
+            try
+            {
+                string LocationPage = LocationPagesMetOffice();
+
+                HtmlWeb web = new HtmlWeb();
+
+
+                HtmlDocument doc = web.Load(LocationPage);
+                var TempNodes = doc.DocumentNode.SelectNodes("//span[contains(@class,'tab-temp-high')]");
+                foreach (var node in TempNodes)
+                {
+                    //highTemps.Add(node.Attributes["data-value"].Value);
+                    highTemps.Add(node.InnerText);
+                }
+
+                return highTemps;
+            }
+
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                throw;
+            }
+
+        }
+
+        private List<string> GetLowTemps()
+        {
+            List<string> lowTemps = new List<string>();
+
+            try
+            {
+                string LocationDoc = LocationPagesMetOffice();
+
+                HtmlWeb web = new HtmlWeb();
+
+
+                HtmlDocument doc = web.Load(LocationDoc);
+                var TempNodes = doc.DocumentNode.SelectNodes("//span[contains(@class,'tab-temp-low')]");
+                foreach (var node in TempNodes)
+                {
+                    //lowTemps.Add(node.Attributes["data-value"].Value);
+                    lowTemps.Add(node.InnerText);
+                }
+
+                return lowTemps;
+            }
+
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+                throw;
+            }
+        }
+
+        public void OutputTempData(List<string> highData, List<string> lowData)
+        {
+
+
+            string CurrentTempHigh = highData[0];
+            string CurrentTempHighCut = CurrentTempHigh.Substring(0, CurrentTempHigh.IndexOf("&"));
+            int CurrentTempHighCutInt = int.Parse(CurrentTempHighCut); 
+
+
+            string CurrentTempLow = lowData[0];
+            string CurrentTempLowCut = CurrentTempLow.Substring(0, CurrentTempLow.IndexOf("&"));
+            int CurrentTempLowCutInt = int.Parse(CurrentTempLowCut);
+
+
+            DateTime today = DateTime.Today;
+            string todayDate = today.ToString("dd-MM-yyyy");
+
+            OutputBox.Text = "Date: " + todayDate + "\n";
+            OutputBox.Text += "Location: " + ((ComboBoxItem)LocationBox.SelectedItem).Content.ToString() + "\n";
+            OutputBox.Text += "Highest Temperature: " + CurrentTempHighCutInt.ToString() + "°" + "\n";
+            OutputBox.Text += "Lowest Temperature: " + CurrentTempLowCutInt.ToString() + "°";
+
+            TemperatureAdvice(CurrentTempHighCutInt);
+
+        }
+
+        public void TemperatureAdvice(int high)
+        {
+            if(high < 0)
+            {
+                MessageBox.Show("It's going to be cold");
+            }
+            else if(high >= 0 && high <= 10 )
+            {
+                MessageBox.Show("");
+            }
+            else if (high >= 01 && high <= 20)
+            {
+                MessageBox.Show("");
+            }
+            else if (high >= 20 && high <= 30)
+            {
+                MessageBox.Show("");
+            }
+            else if (high >= 30 && high <= 40)
+            {
+                MessageBox.Show("");
+            }
+            else if (high >= 40 && high <= 50)
+            {
+                MessageBox.Show("");
+            }
+        }
+
+
+
+
+
+
+        private void HumidityBox_Click(object sender, RoutedEventArgs e)
+        {
+
+            OutputBox.Clear();
+            AdviceBox.Clear();
+
+            List<string> HumidLevels = GetLevels();
+
+            OutputHumidLevels(HumidLevels);
+        }
+
+        private List<string> GetLevels()
+        {
+            List<string> levels = new List<string>();
+            try
+            {
+
+                string WebPage = LocationPagesMetOffice();
+
+                HtmlWeb web = new HtmlWeb();
+
+                HtmlDocument doc = web.Load(WebPage);
+
+                string element = "d0Humidity d0t";
+
+                int count = 9;
+
+                for (int i = 0; i < count; i++)
+                {
+                    var HumidNodes = doc.DocumentNode.SelectNodes($"//td[contains(@headers,'{element + i}')]");
+
+                    foreach (var HumidNode in HumidNodes)
+                    {
+                        levels.Add(HumidNode.InnerText);
+                    }
+                }
+
+                return levels;
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+
+                throw;
+            }
+
+        }
+
+        public void OutputHumidLevels(List<string> percents)
+        {
+
+            List<int> numbers = new List<int>();
+
+            foreach (string percent in percents)
+            {
+                string Strvalue = percent.Substring(0, percent.IndexOf("&"));
+
+                int IntValue = int.Parse(Strvalue);
+                numbers.Add(IntValue);
+
+            }
+
+            int max_num = numbers.AsQueryable().Max();
+            int min_num = numbers.AsQueryable().Min();
+
+            DateTime today = DateTime.Today;
+            string todayDate = today.ToString("dd-MM-yyyy");
+
+            OutputBox.Text = "Date: " + todayDate + "\n";
+            OutputBox.Text += "Location: " + ((ComboBoxItem)LocationBox.SelectedItem).Content.ToString() + "\n";
+            OutputBox.Text += "Maximum humidity percentage: " + max_num.ToString() + "%" + "\n";
+            OutputBox.Text += "Minimum humidity percentage: " + min_num.ToString() + "%";
+
+            HumidityAdvice(max_num);
+
+        }
+
+        public void HumidityAdvice(int high)
+        {
+            if(high < 0)
+            {
+                MessageBox.Show("");
+            }
+            else if (high >= 0 && high <= 10)
+            {
+                MessageBox.Show("");
+            }
+        }
+
+
+
+
+
+
+
+        private void WindSpeedBox_Click(object sender, RoutedEventArgs e)
+        {
+
+            OutputBox.Clear();
+            AdviceBox.Clear();
+
+            List<string> speeds = GetSpeedWebScrape();
+
+            OutputSpeedLevel(speeds);
+        }
+
+        private List<string> GetSpeedWebScrape()
+        {
+            List<string> speeds = new List<string>();
+            try
+            {
+                string WebPage = LocationPagesMetOffice();
+
+                HtmlWeb web = new HtmlWeb();
+                HtmlDocument doc = web.Load(WebPage);
+
+                string element = "d0Wind d0t";
+
+                int count = 9;
+
+                for (int i = 0; i < count; i++)
+                {
+                    var WindNodes = doc.DocumentNode.SelectNodes($"//td[contains(@headers,'{element + i}')]");
+
+                    foreach (var windNode in WindNodes)
+                    {
+                        speeds.Add(windNode.InnerText);
+                    }
+                }
+
+
+                return speeds;
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+
+                throw;
+            }
+        }
+
+
+        public void OutputSpeedLevel(List<string> mphs)
+        {
+            List<int> numbers = new List<int>();
+
+            foreach (string mph in mphs)
+            {
+                string Strvalue = string.Join("", mph.Where(c => char.IsDigit(c)));
+
+                int IntValue = int.Parse(Strvalue);
+                numbers.Add(IntValue);
+
+            }
+
+            int max_num = numbers.AsQueryable().Max();
+            int min_num = numbers.AsQueryable().Min();
+
+
+            DateTime today = DateTime.Today;
+            string todayDate = today.ToString("dd-MM-yyyy");
+
+            OutputBox.Text = "Date: " + todayDate + "\n";
+            OutputBox.Text += "Location: " + ((ComboBoxItem)LocationBox.SelectedItem).Content.ToString() + "\n";
+            OutputBox.Text += "Maximum wind speed: " + max_num.ToString() + "MPH" + "\n";
+            OutputBox.Text += "Minimum wind speed: " + min_num.ToString() + "MPH";
+
+            SpeedAdvice(max_num);
+
+        }
+
+        public void SpeedAdvice(int high)
+        {
+            if (high < 0)
+            {
+                MessageBox.Show("");
+            }
+            else if (high >= 0 && high <= 10)
+            {
+                MessageBox.Show("");
+            }
+        }
+    }
+}
